@@ -10,6 +10,9 @@ defmodule ConnectFour.Application do
     children = [
       # Starts a worker by calling: ConnectFour.Worker.start_link(arg)
       # {ConnectFour.Worker, arg}
+
+      # Starts the registry
+      ConnectFour.Registry
     ]
 
     # See https://hexdocs.pm/elixir/Supervisor.html
