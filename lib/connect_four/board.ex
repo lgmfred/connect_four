@@ -52,11 +52,11 @@ defmodule ConnectFour.Board do
       iex> is_list(board)
       true
 
-      iex> {:no_win, updated_board} = ConnectFour.Board.drop(ConnectFour.Board.new(), %ConnectFour.Cell{row: 0, col: 3}, :player1)
+      iex> {:ok, _cell, :no_win, updated_board} = ConnectFour.Board.drop(ConnectFour.Board.new(), %ConnectFour.Cell{row: 0, col: 3}, :player1)
       iex> is_list(updated_board)
       true
   """
-  @spec drop(t(), cell(), token()) :: {status(), t()} | {:error, atom()}
+  @spec drop(t(), cell(), token()) :: {:ok, cell(), status(), t()} | {:error, atom()}
   def drop(board, %Cell{col: col}, token) when col in 0..6 do
     board
     |> get_lowest_empty_cell(col)
@@ -81,21 +81,21 @@ defmodule ConnectFour.Board do
 
   ## Updates the board by placing the token in the specified cell (row and column).
   @spec place_token({:ok, cell()} | {:error, atom()}, t(), token()) ::
-          {:ok, t()} | {:error, atom()}
+          {:ok, cell(), t()} | {:error, atom()}
   defp place_token({:ok, %Cell{row: row, col: col} = cell}, board, token) do
     updated_board =
       List.update_at(board, row, fn current_row ->
         List.replace_at(current_row, col, token)
       end)
 
-    {:ok, {cell, updated_board}}
+    {:ok, cell, updated_board}
   end
 
   defp place_token(error, _board, _token), do: error
 
   ## Determines if the drop resulted in a win.
-  def drop_result({:ok, {%Cell{} = cell, board}}, token) do
-    {win_check(board, cell, token), board}
+  def drop_result({:ok, %Cell{} = cell, board}, token) do
+    {:ok, cell, win_check(board, cell, token), board}
   end
 
   def drop_result(error, _token), do: error
