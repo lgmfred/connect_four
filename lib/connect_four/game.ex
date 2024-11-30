@@ -1,9 +1,15 @@
 defmodule ConnectFour.Game do
   use GenServer, restart: :transient
 
+  require Logger
+
+  import ConnectFour.Registry, only: [via_tuple: 1]
+
   alias ConnectFour.Cell
   alias ConnectFour.Board
   alias ConnectFour.Rules
+
+  @timeout :timer.hours(24)
 
   @players [:player1, :player2]
 
@@ -40,7 +46,7 @@ defmodule ConnectFour.Game do
     player1 = %{name: Keyword.fetch!(params, :name), token: :player1}
     player2 = %{name: nil, token: :player2}
     state = %{player1: player1, player2: player2, board: Board.new(), rules: Rules.new()}
-    {:ok, state}
+    {:ok, state, @timeout}
   end
 
   @impl true
@@ -51,7 +57,7 @@ defmodule ConnectFour.Game do
       |> update_rules(rules)
       |> reply_success(:ok)
     else
-      :error -> {:reply, :error, state}
+      :error -> reply_error(state, :error)
     end
   end
 
@@ -65,9 +71,15 @@ defmodule ConnectFour.Game do
       |> update_rules(rules)
       |> reply_success(win_status)
     else
-      :error -> {:reply, :error, state}
-      error -> {:reply, error, state}
+      :error -> reply_error(state, :error)
+      error -> reply_error(state, error)
     end
+  end
+
+  @impl true
+  def handle_info(:timeout, state) do
+    Logger.debug("A game has timed out")
+    {:stop, {:shutdown, :timeout}, state}
   end
 
   defp update_player2_name(state, name), do: put_in(state.player2.name, name)
@@ -76,7 +88,7 @@ defmodule ConnectFour.Game do
 
   defp update_rules(state, rules), do: %{state | rules: rules}
 
-  defp reply_success(state, reply), do: {:reply, reply, state}
+  defp reply_success(state, reply), do: {:reply, reply, state, @timeout}
 
-  def via_tuple(name), do: {:via, Registry, {ConnectFour.Registry, name}}
+  defp reply_error(state, error), do: {:reply, error, state, @timeout}
 end

@@ -1,6 +1,9 @@
 defmodule ConnectFour.GameTest do
   use ExUnit.Case, async: true
 
+  import ConnectFour.Registry, only: [via_tuple: 1]
+  import ExUnit.CaptureLog
+
   alias ConnectFour.Game
   alias ConnectFour.Rules
 
@@ -64,7 +67,22 @@ defmodule ConnectFour.GameTest do
     assert {:error, :column_full} = Game.drop_token(game_name, :player1, 0, 0)
   end
 
-  defp via_tuple(game_name) do
-    {:via, Registry, {ConnectFour.Registry, game_name}}
+  test "handles game :timeout message correctly", %{game_name: game_name} do
+    {:ok, pid} = ConnectFour.Registry.lookup_game(game_name)
+    true = Process.unlink(pid)
+
+    ref = Process.monitor(pid)
+
+    log =
+      capture_log(fn ->
+        send(pid, :timeout)
+        Process.sleep(50)
+      end)
+
+    assert log =~ "A game has timed out"
+
+    assert_receive {:DOWN, ^ref, :process, ^pid, {:shutdown, :timeout}}
+    refute Process.alive?(pid)
+    assert {:error, :not_found} = ConnectFour.Registry.lookup_game(game_name)
   end
 end

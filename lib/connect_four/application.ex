@@ -11,7 +11,7 @@ defmodule ConnectFour.Application do
       # Starts a worker by calling: ConnectFour.Worker.start_link(arg)
       # {ConnectFour.Worker, arg}
 
-      # Starts the registry
+      ConnectFour.DynamicSupervisor,
       ConnectFour.Registry
     ]
 
