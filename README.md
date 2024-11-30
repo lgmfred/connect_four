@@ -1,5 +1,7 @@
 # Four-in-a-Row (Connect Four) Game Engine
 
+![CI](https://github.com/lgmfred/connect_four/actions/workflows/ci.yml/badge.svg)
+
 This is a two-player game played on a 6x7 grid (6 rows and 7 columns). Players take turns dropping their tokens into one of the columns. The token falls to the lowest available position in that column.
 
 The first player to align four of their tokens consecutively—horizontally, vertically, or diagonally—wins the game.
