@@ -31,7 +31,8 @@ defmodule ConnectFour.DynamicSupervisorTest do
 
       assert {:ok, ^pid} = ConnectFour.Registry.lookup_game("game_3")
 
-      Process.exit(pid, :shutdown)
+      DynamicSupervisor.terminate_child(ConnectFour.DynamicSupervisor, pid)
+
       Process.sleep(100)
 
       refute Process.alive?(pid)

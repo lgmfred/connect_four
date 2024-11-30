@@ -11,8 +11,10 @@ defmodule ConnectFour.Application do
       # Starts a worker by calling: ConnectFour.Worker.start_link(arg)
       # {ConnectFour.Worker, arg}
 
-      ConnectFour.DynamicSupervisor,
-      ConnectFour.Registry
+      ConnectFour.CacheRestore,
+      ConnectFour.Cache,
+      ConnectFour.Registry,
+      ConnectFour.DynamicSupervisor
     ]
 
     # See https://hexdocs.pm/elixir/Supervisor.html

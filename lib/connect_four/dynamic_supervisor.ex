@@ -1,4 +1,5 @@
 defmodule ConnectFour.DynamicSupervisor do
+  alias ConnectFour.Cache
   use DynamicSupervisor
 
   @spec start_link(keyword()) :: Supervisor.on_start()
@@ -25,6 +26,7 @@ defmodule ConnectFour.DynamicSupervisor do
   @spec stop_game(binary()) :: :ok
   def stop_game(game_id) do
     {:ok, pid} = ConnectFour.Registry.lookup_game(game_id)
+    Cache.delete(game_id)
     DynamicSupervisor.terminate_child(__MODULE__, pid)
   end
 end

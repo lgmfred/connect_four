@@ -8,6 +8,7 @@ defmodule ConnectFour.Game do
   alias ConnectFour.Cell
   alias ConnectFour.Board
   alias ConnectFour.Rules
+  alias ConnectFour.Cache
 
   @timeout :timer.hours(24)
 
@@ -21,7 +22,7 @@ defmodule ConnectFour.Game do
 
   @spec start_link(binary(), keyword()) :: GenServer.on_start()
   def start_link(id, opts) when is_binary(id) do
-    GenServer.start_link(__MODULE__, opts, name: via_tuple(id))
+    GenServer.start_link(__MODULE__, [{:id, id} | opts], name: via_tuple(id))
   end
 
   @doc """
@@ -42,11 +43,30 @@ defmodule ConnectFour.Game do
   end
 
   @impl true
+
   def init(params) do
-    player1 = %{name: Keyword.fetch!(params, :name), token: :player1}
+    {:ok, params, {:continue, :upsert_to_cache}}
+  end
+
+  @impl true
+  def handle_continue(:upsert_to_cache, state) do
+    game_id = Keyword.fetch!(state, :id)
+    player_name = Keyword.fetch!(state, :name)
+
+    state_data =
+      case Cache.get(game_id) do
+        {:error, :not_found} -> fresh_state(game_id, player_name)
+        {:ok, state} -> state
+      end
+
+    :ok = Cache.put(game_id, state_data)
+    {:noreply, state_data, @timeout}
+  end
+
+  defp fresh_state(id, name) do
+    player1 = %{name: name, token: :player1}
     player2 = %{name: nil, token: :player2}
-    state = %{player1: player1, player2: player2, board: Board.new(), rules: Rules.new()}
-    {:ok, state, @timeout}
+    %{id: id, player1: player1, player2: player2, board: Board.new(), rules: Rules.new()}
   end
 
   @impl true
@@ -82,13 +102,27 @@ defmodule ConnectFour.Game do
     {:stop, {:shutdown, :timeout}, state}
   end
 
+  @impl true
+  def terminate({:shutdown, :timeout}, state) do
+    Cache.delete(state.id)
+    :ok
+  end
+
+  def terminate(reason, _state) do
+    Logger.error("Game terminated for an unknown reason: #{inspect(reason)}")
+    :ok
+  end
+
   defp update_player2_name(state, name), do: put_in(state.player2.name, name)
 
   defp update_board(state, board), do: %{state | board: board}
 
   defp update_rules(state, rules), do: %{state | rules: rules}
 
-  defp reply_success(state, reply), do: {:reply, reply, state, @timeout}
-
   defp reply_error(state, error), do: {:reply, error, state, @timeout}
+
+  defp reply_success(state, reply) do
+    :ok = Cache.put(state.id, state)
+    {:reply, reply, state, @timeout}
+  end
 end
