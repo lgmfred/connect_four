@@ -37,13 +37,12 @@ defmodule ConnectFour.Game do
   Drop a token in the given row and column
   """
   @spec drop_token(binary(), atom(), non_neg_integer(), non_neg_integer()) ::
-          {:reply, term(), state()}
+          :ok | :error | {:error, atom()}
   def drop_token(game, player, row, col) when player in @players and is_integer(col) do
     GenServer.call(via_tuple(game), {:drop_token, player, row, col})
   end
 
   @impl true
-
   def init(params) do
     {:ok, params, {:continue, :upsert_to_cache}}
   end
