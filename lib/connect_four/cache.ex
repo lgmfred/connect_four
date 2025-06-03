@@ -22,6 +22,10 @@ defmodule ConnectFour.Cache do
     end
   end
 
+  def get_all do
+    :ets.tab2list(@ets_table_name)
+  end
+
   def delete(game_id) do
     GenServer.cast(__MODULE__, {:delete, game_id})
   end

@@ -1,6 +1,9 @@
 defmodule ConnectFour.DynamicSupervisor do
-  alias ConnectFour.Cache
   use DynamicSupervisor
+
+  require Logger
+
+  alias ConnectFour.Cache
 
   @spec start_link(keyword()) :: Supervisor.on_start()
   def start_link(opts) do
@@ -12,7 +15,7 @@ defmodule ConnectFour.DynamicSupervisor do
     DynamicSupervisor.init(strategy: :one_for_one)
   end
 
-  @spec spawn_game(binary(), keyword()) :: {:ok, pid()}
+  @spec spawn_game(binary(), map()) :: {:ok, pid()}
   def spawn_game(id, params) do
     child_spec = %{
       id: ConnectFour.Game,

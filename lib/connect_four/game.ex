@@ -43,7 +43,6 @@ defmodule ConnectFour.Game do
   end
 
   @impl true
-
   def init(params) do
     {:ok, params, {:continue, :upsert_to_cache}}
   end

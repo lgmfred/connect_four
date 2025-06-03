@@ -5,6 +5,8 @@ defmodule ConnectFour.Application do
 
   use Application
 
+  require Logger
+
   @impl true
   def start(_type, _args) do
     children = [
@@ -14,7 +16,8 @@ defmodule ConnectFour.Application do
       ConnectFour.CacheRestore,
       ConnectFour.Cache,
       ConnectFour.Registry,
-      ConnectFour.DynamicSupervisor
+      ConnectFour.DynamicSupervisor,
+      ConnectFour.Init
     ]
 
     # See https://hexdocs.pm/elixir/Supervisor.html
