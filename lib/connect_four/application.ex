@@ -16,7 +16,7 @@ defmodule ConnectFour.Application do
       ConnectFour.CacheRestore,
       ConnectFour.Cache,
       ConnectFour.Registry,
-      ConnectFour.DynamicSupervisor,
+      ConnectFour.GameSupervisor,
       ConnectFour.Init
     ]
 

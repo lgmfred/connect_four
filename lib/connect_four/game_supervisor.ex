@@ -1,7 +1,5 @@
-defmodule ConnectFour.DynamicSupervisor do
+defmodule ConnectFour.GameSupervisor do
   use DynamicSupervisor
-
-  require Logger
 
   alias ConnectFour.Cache
 
@@ -15,15 +13,15 @@ defmodule ConnectFour.DynamicSupervisor do
     DynamicSupervisor.init(strategy: :one_for_one)
   end
 
-  @spec spawn_game(binary(), map()) :: {:ok, pid()}
-  def spawn_game(id, params) do
+  @spec spawn_game(binary(), keyword()) :: Supervisor.on_start_child()
+  def spawn_game(id, opts) when is_binary(id) and is_list(opts) do
     child_spec = %{
       id: ConnectFour.Game,
-      start: {ConnectFour.Game, :start_link, [id, params]},
+      start: {ConnectFour.Game, :start_link, [id, opts]},
       restart: :transient
     }
 
-    {:ok, _pid} = DynamicSupervisor.start_child(__MODULE__, child_spec)
+    DynamicSupervisor.start_child(__MODULE__, child_spec)
   end
 
   @spec stop_game(binary()) :: :ok

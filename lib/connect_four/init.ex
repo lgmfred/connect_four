@@ -14,11 +14,13 @@ defmodule ConnectFour.Init do
   end
 
   defp start_game_processes do
-    ## If we had a database, we'd fetch all active games from it and start a game process for
-    ## each one. For now, we just start with an empty list.
+    ## ETS is only a runtime cache. Durable recovery after a deploy should come
+    ## from a database or event log, then active games can be rehydrated here.
     []
-    |> Enum.each(fn %{id: id} = game_params ->
-      ConnectFour.DynamicSupervisor.spawn_game(id, game_params)
+    |> Enum.each(fn game_opts ->
+      id = Keyword.fetch!(game_opts, :id)
+
+      ConnectFour.GameSupervisor.spawn_game(id, Keyword.delete(game_opts, :id))
     end)
   end
 end
