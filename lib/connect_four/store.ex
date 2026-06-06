@@ -1,6 +1,8 @@
 defmodule ConnectFour.Store do
   use GenServer
 
+  require Logger
+
   @moduledoc """
   Durable game-state storage backed by DETS.
   """
@@ -47,9 +49,16 @@ defmodule ConnectFour.Store do
     path = Keyword.get(opts, :path, configured_path())
     File.mkdir_p!(Path.dirname(path))
 
+    Logger.info("Store PID #{inspect(self())} is opening DETS game store at #{path}")
+
     case :dets.open_file(@table_name, file: String.to_charlist(path), type: :set, repair: true) do
-      {:ok, @table_name} -> {:ok, %{table: @table_name, path: path}}
-      {:error, reason} -> {:stop, reason}
+      {:ok, @table_name} ->
+        Logger.info("Store PID #{inspect(self())} opened DETS game store")
+        {:ok, %{table: @table_name, path: path}}
+
+      {:error, reason} ->
+        Logger.error("Failed to open DETS game store: #{inspect(reason)}")
+        {:stop, reason}
     end
   end
 
@@ -104,6 +113,7 @@ defmodule ConnectFour.Store do
 
   @impl true
   def terminate(_reason, state) do
+    Logger.info("Store PID #{inspect(self())} is closing DETS game store at #{state.path}")
     :dets.close(state.table)
     :ok
   end

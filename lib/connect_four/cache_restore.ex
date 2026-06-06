@@ -13,6 +13,10 @@ defmodule ConnectFour.CacheRestore do
 
   @impl true
   def init(_opts) do
+    Logger.info(
+      "CacheRestore started with PID #{inspect(self())}; ready to hold the ETS cache if ConnectFour.Cache restarts"
+    )
+
     {:ok, nil}
   end
 
@@ -28,18 +32,26 @@ defmodule ConnectFour.CacheRestore do
 
   @impl true
   def handle_info({:"ETS-TRANSFER", table_id, _from, _data}, _state) do
-    Logger.info("Backing up ETS cache from ConnectFour.Cache")
+    Logger.info(
+      "CacheRestore PID #{inspect(self())} is backing up ETS cache from ConnectFour.Cache"
+    )
+
     {:noreply, table_id}
   end
 
   def do_transfer(nil) do
-    Logger.info("Heir process does not own ETS table, restore cache failed")
+    Logger.info("CacheRestore PID #{inspect(self())} does not own an ETS table yet")
     {:reply, :no_backup, nil}
   end
 
   def do_transfer(table_id) do
-    Logger.info("Restoring cache from heir to ConnectFour.Cache")
-    :ets.give_away(table_id, Process.whereis(ConnectFour.Cache), nil)
+    cache_pid = Process.whereis(ConnectFour.Cache)
+
+    Logger.info(
+      "CacheRestore PID #{inspect(self())} is transferring ETS table to ConnectFour.Cache PID #{inspect(cache_pid)}"
+    )
+
+    :ets.give_away(table_id, cache_pid, nil)
     {:reply, :restoring, nil}
   end
 end

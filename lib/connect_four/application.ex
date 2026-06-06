@@ -10,9 +10,6 @@ defmodule ConnectFour.Application do
   @impl true
   def start(_type, _args) do
     children = [
-      # Starts a worker by calling: ConnectFour.Worker.start_link(arg)
-      # {ConnectFour.Worker, arg}
-
       ConnectFour.CacheRestore,
       ConnectFour.Store,
       ConnectFour.Cache,
@@ -21,9 +18,19 @@ defmodule ConnectFour.Application do
       ConnectFour.Init
     ]
 
-    # See https://hexdocs.pm/elixir/Supervisor.html
-    # for other strategies and supported options
+    Logger.info(
+      "Starting ConnectFour supervision tree from PID #{inspect(self())}: CacheRestore -> Store -> Cache -> Registry -> GameSupervisor -> Init"
+    )
+
     opts = [strategy: :one_for_one, name: ConnectFour.Supervisor]
-    Supervisor.start_link(children, opts)
+
+    case Supervisor.start_link(children, opts) do
+      {:ok, pid} = result ->
+        Logger.info("ConnectFour.Supervisor started with PID #{inspect(pid)}")
+        result
+
+      error ->
+        error
+    end
   end
 end

@@ -1,6 +1,8 @@
 defmodule ConnectFour.GameSupervisor do
   use DynamicSupervisor
 
+  require Logger
+
   alias ConnectFour.Cache
   alias ConnectFour.Game
   alias ConnectFour.Store
@@ -12,18 +14,43 @@ defmodule ConnectFour.GameSupervisor do
 
   @impl true
   def init(_opts) do
+    Logger.info(
+      "GameSupervisor started with PID #{inspect(self())}; game processes will be supervised dynamically"
+    )
+
     DynamicSupervisor.init(strategy: :one_for_one)
   end
 
   @spec spawn_game(binary(), keyword()) :: Supervisor.on_start_child()
   def spawn_game(id, opts) when is_binary(id) and is_list(opts) do
+    source = if Keyword.has_key?(opts, :state), do: "persisted state", else: "new game request"
+
+    Logger.info(
+      "PID #{inspect(self())} is requesting GameSupervisor to start game #{id} from #{source}"
+    )
+
     child_spec = %{
       id: ConnectFour.Game,
       start: {ConnectFour.Game, :start_link, [id, opts]},
       restart: :transient
     }
 
-    DynamicSupervisor.start_child(__MODULE__, child_spec)
+    case DynamicSupervisor.start_child(__MODULE__, child_spec) do
+      {:ok, pid} = result ->
+        Logger.info("GameSupervisor started game #{id} with PID #{inspect(pid)} from #{source}")
+        result
+
+      {:ok, pid, _info} = result ->
+        Logger.info("GameSupervisor started game #{id} with PID #{inspect(pid)} from #{source}")
+        result
+
+      {:error, {:already_started, pid}} = result ->
+        Logger.info("Game #{id} is already running with PID #{inspect(pid)}")
+        result
+
+      result ->
+        result
+    end
   end
 
   @spec stop_game(binary()) :: :ok
