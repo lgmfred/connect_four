@@ -49,8 +49,8 @@ defmodule ConnectFour.MixProject do
       ci: [
         "format --check-formatted",
         "compile --warnings-as-errors --force",
-        "dialyzer",
-        "coveralls"
+        "coveralls",
+        "dialyzer"
       ]
     ]
   end

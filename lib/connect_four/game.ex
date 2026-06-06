@@ -71,8 +71,15 @@ defmodule ConnectFour.Game do
 
     state_data =
       case Cache.get(game_id) do
-        {:ok, state} -> normalize_state(state)
-        {:error, :not_found} -> load_state(game_id, state)
+        {:ok, state} ->
+          Logger.info(
+            "Restarting game: #{game_id} with new PID: #{inspect(self())} after a crash/shutdown"
+          )
+
+          normalize_state(state)
+
+        {:error, :not_found} ->
+          load_state(game_id, state)
       end
 
     :ok = Cache.put(game_id, state_data)
@@ -133,7 +140,9 @@ defmodule ConnectFour.Game do
   def handle_call({:drop_token, player, col}, _from, state) do
     with {:ok, rules} <- Rules.check(state.rules, {:drop_token, player}),
          {:ok, cell} <- Cell.new(0, col),
-         {:ok, _actual_cell, win_status, board} <- Board.drop(state.board, cell, player),
+         {:ok, actual_cell, win_status, board} <- Board.drop(state.board, cell, player),
+         ## Maybe let's crash here, shall we?
+         :ok <- maybe_crash_on_cell(actual_cell, player),
          {:ok, rules} <- Rules.check(rules, {:win_check, win_status}) do
       state
       |> update_board(board)
@@ -151,7 +160,7 @@ defmodule ConnectFour.Game do
 
   @impl true
   def handle_info(:timeout, state) do
-    Logger.debug("The game: #{state.id} has timed out")
+    Logger.debug("The game: #{state.id} with PID: #{inspect(self())} has timed out")
     {:stop, {:shutdown, :timeout}, state}
   end
 
@@ -167,7 +176,10 @@ defmodule ConnectFour.Game do
   end
 
   def terminate(reason, state) do
-    Logger.error("Game: #{state.id} terminated for an unknown reason: #{inspect(reason)}")
+    Logger.error(
+      "Game: #{state.id} with PID: #{inspect(self())} terminated for an unknown reason: #{inspect(reason)}"
+    )
+
     :ok
   end
 
@@ -176,6 +188,12 @@ defmodule ConnectFour.Game do
   defp update_board(state, board), do: %{state | board: board}
 
   defp update_rules(state, rules), do: %{state | rules: rules}
+
+  defp maybe_crash_on_cell(%Cell{row: 4, col: 6}, :player2) do
+    raise "Deliberate crash when :player2 drops a token on cell row=4 col=6"
+  end
+
+  defp maybe_crash_on_cell(_cell, _player), do: :ok
 
   defp reply_error(state, error), do: {:reply, error, state, @timeout}
 
