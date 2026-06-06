@@ -22,10 +22,13 @@ defmodule ConnectFour do
       :player1
       iex> ConnectFour.stop_game(game_id)
       :ok
+      iex> Enum.any?(ConnectFour.list_games(), &(&1.id == game_id and &1.status == :stopped))
+      true
   """
 
   alias ConnectFour.Game
   alias ConnectFour.GameSupervisor
+  alias ConnectFour.Store
 
   @type game_id :: binary()
   @type player :: :player1 | :player2
@@ -66,7 +69,17 @@ defmodule ConnectFour do
   end
 
   @doc """
+  Return all persisted game records.
+  """
+  @spec list_games() :: [Game.state()]
+  def list_games do
+    Store.all()
+  end
+
+  @doc """
   Stop a running game and remove it from the runtime cache.
+
+  The stopped game remains in durable storage for history and stats.
   """
   @spec stop_game(game_id()) :: :ok
   def stop_game(game_id) when is_binary(game_id) do

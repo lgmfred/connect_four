@@ -24,3 +24,6 @@ connect_four-*.tar
 
 # Temporary files, for example, from tests.
 /tmp/
+
+# Local DETS files for durable demo state.
+/data/

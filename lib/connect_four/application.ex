@@ -14,6 +14,7 @@ defmodule ConnectFour.Application do
       # {ConnectFour.Worker, arg}
 
       ConnectFour.CacheRestore,
+      ConnectFour.Store,
       ConnectFour.Cache,
       ConnectFour.Registry,
       ConnectFour.GameSupervisor,

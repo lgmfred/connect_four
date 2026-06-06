@@ -3,6 +3,8 @@ defmodule ConnectFour.Init do
 
   require Logger
 
+  alias ConnectFour.Store
+
   def start_link(opts) do
     GenServer.start_link(__MODULE__, opts, name: __MODULE__)
   end
@@ -14,13 +16,9 @@ defmodule ConnectFour.Init do
   end
 
   defp start_game_processes do
-    ## ETS is only a runtime cache. Durable recovery after a deploy should come
-    ## from a database or event log, then active games can be rehydrated here.
-    []
-    |> Enum.each(fn game_opts ->
-      id = Keyword.fetch!(game_opts, :id)
-
-      ConnectFour.GameSupervisor.spawn_game(id, Keyword.delete(game_opts, :id))
+    Store.active()
+    |> Enum.each(fn %{id: id} = game_state ->
+      ConnectFour.GameSupervisor.spawn_game(id, state: game_state)
     end)
   end
 end

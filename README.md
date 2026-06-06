@@ -21,7 +21,7 @@ iex -S mix
 
 ## Public API
 
-Use `ConnectFour` as the application boundary:
+Use [`ConnectFour`](lib/connect_four.ex) as the application boundary:
 
 ```elixir
 {:ok, _pid} = ConnectFour.create_game("game-1", "Player 1")
@@ -29,10 +29,18 @@ Use `ConnectFour` as the application boundary:
 :no_win = ConnectFour.drop_token("game-1", :player1, 3)
 state = ConnectFour.get_state("game-1")
 :ok = ConnectFour.stop_game("game-1")
+games = ConnectFour.list_games()
 ```
 
 ## Runtime State
 
-The ETS cache is just for fast runtime access while the application is running. Durable
-recovery across deploys should come from a database or event log, with
-`ConnectFour.Init` rehydrating active games on boot.
+[ETS](https://www.erlang.org/doc/apps/stdlib/ets.html) is used as a fast runtime cache while the application is running. [DETS](https://www.erlang.org/doc/apps/stdlib/dets.html) stores
+game state on disk so active games can be recovered after the application
+restarts, with [`ConnectFour.Init`](lib/connect_four/init.ex) rehydrating active games on boot.
+
+Stopped, timed out, and finished games stay in DETS as historical records for
+stats. Only active games are rehydrated into running processes on boot.
+
+The default DETS file lives at `data/connect_four_games.dets`. For production, you 
+should prefer a real database or event log for richer durability, migrations, observability,
+and multi-node coordination.

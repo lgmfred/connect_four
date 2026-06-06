@@ -9,13 +9,17 @@ defmodule ConnectFour.Game do
   alias ConnectFour.Board
   alias ConnectFour.Rules
   alias ConnectFour.Cache
+  alias ConnectFour.Store
 
-  @timeout :timer.hours(24)
+  @timeout :timer.minutes(5)
 
   @players [:player1, :player2]
 
+  @type status :: :active | :finished | :stopped | :timed_out
+
   @type state :: %{
           id: binary(),
+          status: status(),
           board: Board.t(),
           rules: Rules.t(),
           player1: map(),
@@ -64,22 +68,54 @@ defmodule ConnectFour.Game do
   @impl true
   def handle_continue(:upsert_to_cache, state) do
     game_id = Keyword.fetch!(state, :id)
-    player_name = Keyword.fetch!(state, :name)
 
     state_data =
       case Cache.get(game_id) do
-        {:error, :not_found} -> fresh_state(game_id, player_name)
-        {:ok, state} -> state
+        {:ok, state} -> normalize_state(state)
+        {:error, :not_found} -> load_state(game_id, state)
       end
 
     :ok = Cache.put(game_id, state_data)
+    :ok = Store.put(game_id, state_data)
     {:noreply, state_data, @timeout}
+  end
+
+  defp load_state(game_id, opts) do
+    case Keyword.fetch(opts, :state) do
+      {:ok, state} -> normalize_state(state)
+      :error -> load_state_from_store(game_id, opts)
+    end
+  end
+
+  defp load_state_from_store(game_id, opts) do
+    case Store.get(game_id) do
+      {:ok, state} -> load_stored_state(state, opts)
+      {:error, :not_found} -> fresh_state(game_id, Keyword.fetch!(opts, :name))
+    end
+  end
+
+  defp load_stored_state(state, opts) do
+    state = normalize_state(state)
+
+    if state.status == :active do
+      state
+    else
+      fresh_state(state.id, Keyword.fetch!(opts, :name))
+    end
   end
 
   defp fresh_state(id, name) do
     player1 = %{name: name, token: :player1}
     player2 = %{name: nil, token: :player2}
-    %{id: id, player1: player1, player2: player2, board: Board.new(), rules: Rules.new()}
+
+    %{
+      id: id,
+      status: :active,
+      player1: player1,
+      player2: player2,
+      board: Board.new(),
+      rules: Rules.new()
+    }
   end
 
   @impl true
@@ -115,18 +151,23 @@ defmodule ConnectFour.Game do
 
   @impl true
   def handle_info(:timeout, state) do
-    Logger.debug("A game has timed out")
+    Logger.debug("The game: #{state.id} has timed out")
     {:stop, {:shutdown, :timeout}, state}
   end
 
   @impl true
   def terminate({:shutdown, :timeout}, state) do
     Cache.delete(state.id)
+    Store.put(state.id, Map.put(state, :status, :timed_out))
     :ok
   end
 
-  def terminate(reason, _state) do
-    Logger.error("Game terminated for an unknown reason: #{inspect(reason)}")
+  def terminate(:shutdown, _state) do
+    :ok
+  end
+
+  def terminate(reason, state) do
+    Logger.error("Game: #{state.id} terminated for an unknown reason: #{inspect(reason)}")
     :ok
   end
 
@@ -139,7 +180,18 @@ defmodule ConnectFour.Game do
   defp reply_error(state, error), do: {:reply, error, state, @timeout}
 
   defp reply_success(state, reply) do
+    state = update_status(state)
+
+    :ok = Store.put(state.id, state)
     :ok = Cache.put(state.id, state)
     {:reply, reply, state, @timeout}
   end
+
+  defp update_status(%{rules: %Rules{state: :game_over}} = state) do
+    %{state | status: :finished}
+  end
+
+  defp update_status(state), do: %{state | status: :active}
+
+  defp normalize_state(state), do: Map.put_new(state, :status, :active)
 end

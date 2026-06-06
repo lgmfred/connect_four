@@ -93,7 +93,7 @@ defmodule ConnectFour.GameTest do
         Process.sleep(50)
       end)
 
-    assert log =~ "A game has timed out"
+    assert log =~ "The game: #{game_name} has timed out"
 
     assert_receive {:DOWN, ^ref, :process, ^pid, {:shutdown, :timeout}}
     refute Process.alive?(pid)

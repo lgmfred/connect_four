@@ -13,7 +13,7 @@ defmodule ConnectFourTest do
     assert {:ok, pid} = ConnectFour.create_game(game_id, "Player1")
     assert Process.alive?(pid)
 
-    assert %{player1: %{name: "Player1"}, player2: %{name: nil}} =
+    assert %{status: :active, player1: %{name: "Player1"}, player2: %{name: nil}} =
              ConnectFour.get_state(game_id)
 
     assert :ok = ConnectFour.join_game(game_id, "Player2")
@@ -23,5 +23,6 @@ defmodule ConnectFourTest do
     assert :player1 = board |> Enum.at(5) |> Enum.at(0)
 
     assert :ok = ConnectFour.stop_game(game_id)
+    assert Enum.any?(ConnectFour.list_games(), &(&1.id == game_id and &1.status == :stopped))
   end
 end
