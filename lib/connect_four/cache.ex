@@ -23,7 +23,9 @@ defmodule ConnectFour.Cache do
   end
 
   def get_all do
-    :ets.tab2list(@ets_table_name)
+    @ets_table_name
+    |> :ets.tab2list()
+    |> Enum.map(fn {_game_id, game_state} -> game_state end)
   end
 
   def delete(game_id) do

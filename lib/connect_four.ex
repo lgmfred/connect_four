@@ -26,6 +26,7 @@ defmodule ConnectFour do
       true
   """
 
+  alias ConnectFour.Cache
   alias ConnectFour.Game
   alias ConnectFour.GameSupervisor
   alias ConnectFour.Store
@@ -66,6 +67,28 @@ defmodule ConnectFour do
   @spec get_state(game_id()) :: Game.state()
   def get_state(game_id) when is_binary(game_id) do
     Game.get_state(game_id)
+  end
+
+  @doc """
+  Return an active game from the runtime cache.
+
+  This is the spectator-friendly read path. It is eventually consistent with
+  player commands because game processes update the cache asynchronously.
+  """
+  @spec get_game(game_id()) :: {:ok, Game.state()} | {:error, :not_found}
+  def get_game(game_id) when is_binary(game_id) do
+    Cache.get(game_id)
+  end
+
+  @doc """
+  Return active games from the runtime cache.
+
+  This is the spectator-friendly read path. It is eventually consistent with
+  player commands because game processes update the cache asynchronously.
+  """
+  @spec list_active_games() :: [Game.state()]
+  def list_active_games do
+    Cache.get_all()
   end
 
   @doc """

@@ -12,6 +12,7 @@ defmodule ConnectFour.Game do
   alias ConnectFour.Store
 
   @timeout :timer.minutes(5)
+  @call_timeout :timer.minutes(1)
 
   @players [:player1, :player2]
 
@@ -40,7 +41,7 @@ defmodule ConnectFour.Game do
   """
   @spec add_player(binary(), binary()) :: :ok | :error
   def add_player(game, name) when is_binary(name) do
-    GenServer.call(via_tuple(game), {:add_player, name})
+    GenServer.call(via_tuple(game), {:add_player, name}, @call_timeout)
   end
 
   @doc """
@@ -49,7 +50,7 @@ defmodule ConnectFour.Game do
   @spec drop_token(binary(), atom(), non_neg_integer()) ::
           Board.status() | :error | {:error, atom()}
   def drop_token(game, player, col) when player in @players and is_integer(col) do
-    GenServer.call(via_tuple(game), {:drop_token, player, col})
+    GenServer.call(via_tuple(game), {:drop_token, player, col}, @call_timeout)
   end
 
   @doc """
@@ -57,7 +58,7 @@ defmodule ConnectFour.Game do
   """
   @spec get_state(binary()) :: state()
   def get_state(game) do
-    GenServer.call(via_tuple(game), :get_state)
+    GenServer.call(via_tuple(game), :get_state, @call_timeout)
   end
 
   @impl true
@@ -83,7 +84,7 @@ defmodule ConnectFour.Game do
       end
 
     :ok = Cache.put(game_id, state_data)
-    :ok = Store.put(game_id, state_data)
+    :ok = persist_state(state_data)
     {:noreply, state_data, @timeout}
   end
 
@@ -176,12 +177,18 @@ defmodule ConnectFour.Game do
   end
 
   def terminate(reason, state) do
+    game_id = game_id(state)
+
     Logger.error(
-      "Game: #{state.id} with PID: #{inspect(self())} terminated for an unknown reason: #{inspect(reason)}"
+      "Game: #{game_id} with PID: #{inspect(self())} terminated for an unknown reason: #{inspect(reason)}"
     )
 
     :ok
   end
+
+  defp game_id(%{id: id}), do: id
+  defp game_id(state) when is_list(state), do: Keyword.get(state, :id, "unknown")
+  defp game_id(_state), do: "unknown"
 
   defp update_player2_name(state, name), do: put_in(state.player2.name, name)
 
@@ -200,9 +207,21 @@ defmodule ConnectFour.Game do
   defp reply_success(state, reply) do
     state = update_status(state)
 
-    :ok = Store.put(state.id, state)
+    :ok = persist_state(state)
     :ok = Cache.put(state.id, state)
     {:reply, reply, state, @timeout}
+  end
+
+  defp persist_state(state) do
+    case Store.put(state.id, state) do
+      :ok ->
+        :ok
+
+      {:error, reason} ->
+        Logger.warning("Could not persist game #{state.id} to DETS store: #{inspect(reason)}")
+
+        :ok
+    end
   end
 
   defp update_status(%{rules: %Rules{state: :game_over}} = state) do
