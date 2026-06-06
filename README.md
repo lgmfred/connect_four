@@ -18,3 +18,21 @@ cd connect_four
 mix compile
 iex -S mix
 ```
+
+## Public API
+
+Use `ConnectFour` as the application boundary:
+
+```elixir
+{:ok, _pid} = ConnectFour.create_game("game-1", "Player 1")
+:ok = ConnectFour.join_game("game-1", "Player 2")
+:no_win = ConnectFour.drop_token("game-1", :player1, 3)
+state = ConnectFour.get_state("game-1")
+:ok = ConnectFour.stop_game("game-1")
+```
+
+## Runtime State
+
+The ETS cache is just for fast runtime access while the application is running. Durable
+recovery across deploys should come from a database or event log, with
+`ConnectFour.Init` rehydrating active games on boot.

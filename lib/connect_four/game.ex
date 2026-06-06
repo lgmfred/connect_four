@@ -14,7 +14,13 @@ defmodule ConnectFour.Game do
 
   @players [:player1, :player2]
 
-  @type state :: %{board: Board.t(), rules: Rules.t(), player1: map(), player2: map()}
+  @type state :: %{
+          id: binary(),
+          board: Board.t(),
+          rules: Rules.t(),
+          player1: map(),
+          player2: map()
+        }
 
   @doc """
   Start a game and register it with the given name in the registry
@@ -40,6 +46,14 @@ defmodule ConnectFour.Game do
           Board.status() | :error | {:error, atom()}
   def drop_token(game, player, col) when player in @players and is_integer(col) do
     GenServer.call(via_tuple(game), {:drop_token, player, col})
+  end
+
+  @doc """
+  Return the current game state.
+  """
+  @spec get_state(binary()) :: state()
+  def get_state(game) do
+    GenServer.call(via_tuple(game), :get_state)
   end
 
   @impl true
@@ -93,6 +107,10 @@ defmodule ConnectFour.Game do
       :error -> reply_error(state, :error)
       error -> reply_error(state, error)
     end
+  end
+
+  def handle_call(:get_state, _from, state) do
+    {:reply, state, state, @timeout}
   end
 
   @impl true
