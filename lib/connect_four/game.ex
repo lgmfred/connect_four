@@ -34,12 +34,12 @@ defmodule ConnectFour.Game do
   end
 
   @doc """
-  Drop a token in the given row and column
+  Drop a token into the given column.
   """
-  @spec drop_token(binary(), atom(), non_neg_integer(), non_neg_integer()) ::
-          :ok | :error | {:error, atom()}
-  def drop_token(game, player, row, col) when player in @players and is_integer(col) do
-    GenServer.call(via_tuple(game), {:drop_token, player, row, col})
+  @spec drop_token(binary(), atom(), non_neg_integer()) ::
+          Board.status() | :error | {:error, atom()}
+  def drop_token(game, player, col) when player in @players and is_integer(col) do
+    GenServer.call(via_tuple(game), {:drop_token, player, col})
   end
 
   @impl true
@@ -80,9 +80,9 @@ defmodule ConnectFour.Game do
     end
   end
 
-  def handle_call({:drop_token, player, row, col}, _from, state) do
+  def handle_call({:drop_token, player, col}, _from, state) do
     with {:ok, rules} <- Rules.check(state.rules, {:drop_token, player}),
-         {:ok, cell} <- Cell.new(row, col),
+         {:ok, cell} <- Cell.new(0, col),
          {:ok, _actual_cell, win_status, board} <- Board.drop(state.board, cell, player),
          {:ok, rules} <- Rules.check(rules, {:win_check, win_status}) do
       state

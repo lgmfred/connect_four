@@ -25,8 +25,8 @@ defmodule ConnectFour.GameTest do
   test "state change first requires adding a player after initialization" do
     game_name = "test_game2"
     {:ok, _game_pid} = Game.start_link(game_name, name: "Player1")
-    assert :error = Game.drop_token(game_name, :player1, 0, 3)
-    assert :error = Game.drop_token(game_name, :player2, 0, 5)
+    assert :error = Game.drop_token(game_name, :player1, 3)
+    assert :error = Game.drop_token(game_name, :player2, 5)
   end
 
   test "add_player/2: adding a player works correctly" do
@@ -52,7 +52,7 @@ defmodule ConnectFour.GameTest do
     :ok = Game.add_player(game_name, "Player2")
     state1 = :sys.get_state(via_tuple(game_name))
 
-    assert :no_win = Game.drop_token(game_name, :player1, 0, 0)
+    assert :no_win = Game.drop_token(game_name, :player1, 0)
 
     state2 = :sys.get_state(via_tuple(game_name))
 
@@ -64,11 +64,11 @@ defmodule ConnectFour.GameTest do
     {:ok, _game_pid} = Game.start_link(game_name, name: "Player1")
     :ok = Game.add_player(game_name, "Player2")
 
-    assert {:error, :invalid_cell} = Game.drop_token(game_name, :player1, -1, 0)
-    assert {:error, :invalid_cell} = Game.drop_token(game_name, :player1, 0, 7)
+    assert {:error, :invalid_cell} = Game.drop_token(game_name, :player1, -1)
+    assert {:error, :invalid_cell} = Game.drop_token(game_name, :player1, 7)
   end
 
-  test "drop_token/4: with full column returns an error" do
+  test "drop_token/3: with full column returns an error" do
     game_name = "test_game7"
     {:ok, _game_pid} = Game.start_link(game_name, name: "Player1")
     :ok = Game.add_player(game_name, "Player2")
@@ -76,7 +76,7 @@ defmodule ConnectFour.GameTest do
 
     _new_state = :sys.replace_state(via_tuple(game_name), fn state -> %{state | board: board} end)
 
-    assert {:error, :column_full} = Game.drop_token(game_name, :player1, 0, 0)
+    assert {:error, :column_full} = Game.drop_token(game_name, :player1, 0)
   end
 
   test "handles game :timeout message correctly" do
