@@ -24,8 +24,8 @@ iex -S mix
 Use [`ConnectFour`](lib/connect_four.ex) as the application boundary:
 
 ```elixir
-{:ok, _pid} = ConnectFour.create_game("game-1", "Player 1")
-:ok = ConnectFour.join_game("game-1", "Player 2")
+{:ok, _pid} = ConnectFour.create_game("game-1", "Player 1", :red)
+:ok = ConnectFour.join_game("game-1", "Player 2", :yellow)
 :no_win = ConnectFour.drop_token("game-1", :player1, 3)
 state = ConnectFour.get_state("game-1")
 :ok = ConnectFour.stop_game("game-1")
@@ -112,8 +112,8 @@ Run this in IEx:
 ```elixir
 game_id = "crash-demo-#{System.unique_integer([:positive])}"
 
-{:ok, pid_before} = ConnectFour.create_game(game_id, "Player 1")
-:ok = ConnectFour.join_game(game_id, "Player 2")
+{:ok, pid_before} = ConnectFour.create_game(game_id, "Player 1", :red)
+:ok = ConnectFour.join_game(game_id, "Player 2", :yellow)
 
 ConnectFour.drop_token(game_id, :player1, 6)
 
@@ -134,8 +134,8 @@ This skips the fake bug and kills the game directly:
 ```elixir
 game_id = "kill-game-#{System.unique_integer([:positive])}"
 
-{:ok, pid_before} = ConnectFour.create_game(game_id, "Player 1")
-:ok = ConnectFour.join_game(game_id, "Player 2")
+{:ok, pid_before} = ConnectFour.create_game(game_id, "Player 1", :red)
+:ok = ConnectFour.join_game(game_id, "Player 2", :yellow)
 ConnectFour.drop_token(game_id, :player1, 3)
 
 Process.exit(pid_before, :kill)
@@ -196,8 +196,8 @@ Hit one game process with a lot of player moves.
 
 ```elixir
 game_id = "stress-single-#{System.unique_integer([:positive])}"
-{:ok, _pid} = ConnectFour.create_game(game_id, "Player 1")
-:ok = ConnectFour.join_game(game_id, "Player 2")
+{:ok, _pid} = ConnectFour.create_game(game_id, "Player 1", :red)
+:ok = ConnectFour.join_game(game_id, "Player 2", :yellow)
 
 total_requests = 10_000
 

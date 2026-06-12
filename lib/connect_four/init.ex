@@ -3,6 +3,7 @@ defmodule ConnectFour.Init do
 
   require Logger
 
+  alias ConnectFour.GameSupervisor
   alias ConnectFour.Store
 
   def start_link(opts) do
@@ -11,24 +12,24 @@ defmodule ConnectFour.Init do
 
   @impl true
   def init(_opts) do
-    Logger.info("Init started with PID #{inspect(self())}; hydrating active games from DETS")
-    count = start_game_processes()
-
-    Logger.info(
-      "Init PID #{inspect(self())} finished; hydrated #{count} active games and will now terminate"
+    Logger.debug(
+      "#{__MODULE__} started with PID #{inspect(self())}; hydrating active games from Store ..."
     )
+
+    count = start_game_processes()
+    Logger.info("#{__MODULE__} hydrated #{count} active games and will now terminate.")
 
     :ignore
   end
 
-  defp start_game_processes do
+  defp start_game_processes() do
     active_games = Store.active()
 
-    Logger.info("Init PID #{inspect(self())} found #{length(active_games)} active games in DETS")
+    Logger.debug("Found #{length(active_games)} active games in Store.")
 
     Enum.each(active_games, fn %{id: id} = game_state ->
-      Logger.info("Init PID #{inspect(self())} is hydrating active game #{id}")
-      ConnectFour.GameSupervisor.spawn_game(id, state: game_state)
+      Logger.debug("Hydrating active game: #{id} ...")
+      GameSupervisor.spawn_game(id, state: game_state)
     end)
 
     length(active_games)

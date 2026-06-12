@@ -18,19 +18,12 @@ defmodule ConnectFour.Application do
       ConnectFour.Init
     ]
 
-    Logger.info(
+    Logger.debug(
       "Starting ConnectFour supervision tree from PID #{inspect(self())}: CacheRestore -> Store -> Cache -> Registry -> GameSupervisor -> Init"
     )
 
     opts = [strategy: :one_for_one, name: ConnectFour.Supervisor]
 
-    case Supervisor.start_link(children, opts) do
-      {:ok, pid} = result ->
-        Logger.info("ConnectFour.Supervisor started with PID #{inspect(pid)}")
-        result
-
-      error ->
-        error
-    end
+    Supervisor.start_link(children, opts)
   end
 end

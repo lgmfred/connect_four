@@ -3,7 +3,6 @@ defmodule ConnectFour.GameSupervisor do
 
   require Logger
 
-  alias ConnectFour.Cache
   alias ConnectFour.Game
   alias ConnectFour.Store
 
@@ -14,7 +13,7 @@ defmodule ConnectFour.GameSupervisor do
 
   @impl true
   def init(_opts) do
-    Logger.info(
+    Logger.debug(
       "GameSupervisor started with PID #{inspect(self())}; game processes will be supervised dynamically"
     )
 
@@ -23,41 +22,31 @@ defmodule ConnectFour.GameSupervisor do
 
   @spec spawn_game(binary(), keyword()) :: Supervisor.on_start_child()
   def spawn_game(id, opts) when is_binary(id) and is_list(opts) do
-    source = if Keyword.has_key?(opts, :state), do: "persisted state", else: "new game request"
-
-    Logger.info(
-      "PID #{inspect(self())} is requesting GameSupervisor to start game #{id} from #{source}"
+    Logger.debug(
+      "PID #{inspect(self())} is requesting GameSupervisor to start/restart game #{id}"
     )
 
     child_spec = %{
       id: ConnectFour.Game,
-      start: {ConnectFour.Game, :start_link, [id, opts]},
+      start: {__MODULE__, :start_game, [id, opts]},
       restart: :transient
     }
 
-    case DynamicSupervisor.start_child(__MODULE__, child_spec) do
-      {:ok, pid} = result ->
-        Logger.info("GameSupervisor started game #{id} with PID #{inspect(pid)} from #{source}")
-        result
+    {:ok, _pid} = DynamicSupervisor.start_child(__MODULE__, child_spec)
+  end
 
-      {:ok, pid, _info} = result ->
-        Logger.info("GameSupervisor started game #{id} with PID #{inspect(pid)} from #{source}")
-        result
+  @doc false
+  @spec start_game(binary(), keyword()) :: GenServer.on_start()
+  def start_game(id, fallback_opts) do
+    opts =
+      case Store.get(id) do
+        {:ok, %{status: :active} = state} -> [state: state]
+        _any -> fallback_opts
+      end
 
-      {:error, {:already_started, pid}} = result ->
-        Logger.info("Game #{id} is already running with PID #{inspect(pid)}")
-        result
-
-      result ->
-        result
-    end
+    Game.start_link(id, opts)
   end
 
   @spec stop_game(binary()) :: :ok
-  def stop_game(game_id) do
-    {:ok, pid} = ConnectFour.Registry.lookup_game(game_id)
-    :ok = Store.put(game_id, Map.put(Game.get_state(game_id), :status, :stopped))
-    Cache.delete(game_id)
-    DynamicSupervisor.terminate_child(__MODULE__, pid)
-  end
+  def stop_game(game_id), do: Game.stop(game_id)
 end

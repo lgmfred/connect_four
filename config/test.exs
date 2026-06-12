@@ -1,5 +1,7 @@
 import Config
 
+config :logger, level: :warning
+
 store_dir =
   Path.join(System.tmp_dir!(), "connect_four_test_#{System.unique_integer([:positive])}")
 

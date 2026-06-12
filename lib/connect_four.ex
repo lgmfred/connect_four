@@ -6,10 +6,10 @@ defmodule ConnectFour do
 
       iex> {:ok, _apps} = Application.ensure_all_started(:connect_four)
       iex> game_id = "public-api-doctest"
-      iex> {:ok, pid} = ConnectFour.create_game(game_id, "Player 1")
+      iex> {:ok, pid} = ConnectFour.create_game(game_id, "Player 1", :red)
       iex> Process.alive?(pid)
       true
-      iex> ConnectFour.join_game(game_id, "Player 2")
+      iex> ConnectFour.join_game(game_id, "Player 2", :yellow)
       :ok
       iex> ConnectFour.drop_token(game_id, :player1, 3)
       :no_win
@@ -33,23 +33,24 @@ defmodule ConnectFour do
 
   @type game_id :: binary()
   @type player :: :player1 | :player2
+  @type player_color :: :red | :yellow | :blue | :green | :purple | :orange
 
   @doc """
   Create a new game with the first player.
   """
-  @spec create_game(game_id(), binary()) :: Supervisor.on_start_child()
-  def create_game(game_id, player_name)
-      when is_binary(game_id) and is_binary(player_name) do
-    GameSupervisor.spawn_game(game_id, name: player_name)
+  @spec create_game(game_id(), binary(), player_color()) :: Supervisor.on_start_child()
+  def create_game(game_id, player_name, color)
+      when is_binary(game_id) and is_binary(player_name) and is_atom(color) do
+    GameSupervisor.spawn_game(game_id, name: player_name, color: color)
   end
 
   @doc """
   Join an existing game as the second player.
   """
-  @spec join_game(game_id(), binary()) :: :ok | :error
-  def join_game(game_id, player_name)
-      when is_binary(game_id) and is_binary(player_name) do
-    Game.add_player(game_id, player_name)
+  @spec join_game(game_id(), binary(), player_color()) :: :ok | :error
+  def join_game(game_id, player_name, color)
+      when is_binary(game_id) and is_binary(player_name) and is_atom(color) do
+    Game.add_player(game_id, player_name, color)
   end
 
   @doc """
@@ -77,7 +78,10 @@ defmodule ConnectFour do
   """
   @spec get_game(game_id()) :: {:ok, Game.state()} | {:error, :not_found}
   def get_game(game_id) when is_binary(game_id) do
-    Cache.get(game_id)
+    case Cache.get(game_id) do
+      {:ok, state} -> {:ok, state}
+      {:error, :not_found} -> Store.get(game_id)
+    end
   end
 
   @doc """
@@ -87,16 +91,20 @@ defmodule ConnectFour do
   player commands because game processes update the cache asynchronously.
   """
   @spec list_active_games() :: [Game.state()]
-  def list_active_games do
-    Cache.get_all()
-  end
+  def list_active_games, do: Cache.get_all()
 
   @doc """
   Return all persisted game records.
   """
   @spec list_games() :: [Game.state()]
-  def list_games do
-    Store.all()
+  def list_games, do: Store.list_games()
+
+  @doc """
+  Return all persisted game records matching a filter.
+  """
+  @spec filter_games(map()) :: [Game.state()]
+  def filter_games(filter) do
+    Store.filter_games(filter)
   end
 
   @doc """

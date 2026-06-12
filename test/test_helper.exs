@@ -1,4 +1,4 @@
-ExUnit.start()
+ExUnit.start(capture_log: true)
 
 ExUnit.after_suite(fn _suite_result ->
   :connect_four

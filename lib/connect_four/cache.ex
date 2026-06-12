@@ -34,17 +34,17 @@ defmodule ConnectFour.Cache do
 
   @impl true
   def init(_opts) do
-    Logger.info("Starting ETS runtime cache with PID #{inspect(self())}")
+    Logger.debug("Starting ETS runtime cache with PID #{inspect(self())}")
 
     ref = Process.monitor(CacheRestore)
     pid = Process.whereis(CacheRestore)
 
-    Logger.info("ETS runtime cache is monitoring CacheRestore PID #{inspect(pid)}")
+    Logger.debug("ETS runtime cache is monitoring CacheRestore PID #{inspect(pid)}")
 
     cache_state =
       case CacheRestore.transfer_ets_table() do
         :no_backup ->
-          Logger.info("Cache PID #{inspect(self())} found no backup; creating a fresh ETS table")
+          Logger.debug("Cache PID #{inspect(self())} found no backup; creating a fresh ETS table")
 
           :ets.new(
             @ets_table_name,
@@ -60,11 +60,11 @@ defmodule ConnectFour.Cache do
           :cache_up
 
         :restoring ->
-          Logger.info("Cache PID #{inspect(self())} is waiting for ETS table transfer")
+          Logger.debug("Cache PID #{inspect(self())} is waiting for ETS table transfer")
           :cache_down
       end
 
-    Logger.info("ETS runtime cache PID #{inspect(self())} state is #{cache_state}")
+    Logger.debug("ETS runtime cache PID #{inspect(self())} state is #{cache_state}")
     {:ok, %{state: cache_state, ref: ref, pid: pid}}
   end
 
@@ -91,7 +91,7 @@ defmodule ConnectFour.Cache do
 
   @impl true
   def handle_info({:"ETS-TRANSFER", _table, _from, _date}, %{state: :cache_down} = state) do
-    Logger.info("Cache PID #{inspect(self())} restored ETS table from heir process")
+    Logger.debug("Cache PID #{inspect(self())} restored ETS table from heir process")
     {:noreply, %{state | state: :cache_up}}
   end
 
@@ -101,7 +101,7 @@ defmodule ConnectFour.Cache do
     new_ref = Process.monitor(new_heir_pid)
     :ets.setopts(@ets_table_name, [{:heir, new_heir_pid, nil}])
 
-    Logger.info(
+    Logger.debug(
       "Cache PID #{inspect(self())} updated ETS heir process to #{inspect(new_heir_pid)}"
     )
 

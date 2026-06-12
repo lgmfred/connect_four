@@ -138,7 +138,7 @@ defmodule ConnectFour.Board do
 
   defp extract_diagonal(board, %Cell{row: row, col: col}, :bottom_left_to_top_right) do
     rows = length(board)
-    cols = length(List.first(board))
+    cols = length(hd(board))
 
     {row, col} =
       Enum.reduce_while(0..(rows + cols), {row, col}, fn
@@ -162,7 +162,7 @@ defmodule ConnectFour.Board do
   ## Almost the same as previous function. Who cares about duplication? Ha!
   defp extract_diagonal(board, %Cell{row: row, col: col}, :top_left_to_bottom_right) do
     rows = length(board)
-    cols = length(List.first(board))
+    cols = length(hd(board))
 
     {row, col} =
       Enum.reduce_while(0..(rows + cols), {row, col}, fn
